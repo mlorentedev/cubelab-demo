@@ -1,0 +1,15 @@
+
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.env.*
+!.env.example
+venv/
+build/
+dist/
+*.egg-info/
+htmlcov/
+.results/
+__results__/

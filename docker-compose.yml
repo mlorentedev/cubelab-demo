@@ -1,0 +1,48 @@
+services:
+  minio:
+    image: minio/minio
+    container_name: minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+      - ./.env:/app/.env
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    command: server /data --console-address ":9001"
+
+  gateway:
+    build: ./src/gateway
+    ports:
+      - "8080:8000"
+    volumes:
+      - ./src/gateway:/app
+      - ./.env:/app/.env
+    depends_on:
+      - minio
+
+  storage:
+    build: ./src/storage
+    ports:
+      - "9002:9000"
+    volumes:
+      - ./src/storage:/app
+      - ./.env:/app/.env
+    depends_on:
+      - minio
+
+  processing:
+    build: ./src/processing
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./src/processing:/app
+      - ./results:/results
+      - ./.env:/app/.env
+    depends_on:
+      - minio
+
+volumes:
+  minio_data:
