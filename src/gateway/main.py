@@ -3,12 +3,23 @@ import requests
 import shutil
 import os
 from dotenv import load_dotenv
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 load_dotenv(dotenv_path="/app/.env")
 
+STORAGE_UPLOAD_URL = os.getenv("STORAGE_UPLOAD_URL")
+
+logger.info(f"Storage upload URL: {STORAGE_UPLOAD_URL}")
+
 app = FastAPI()
 
-STORAGE_UPLOAD_URL = os.getenv("STORAGE_UPLOAD_URL", "http://storage:9000/upload")
+@app.get("/healthz")
+async def healthz():
+    return {"status": "ok"}
 
 @app.post("/upload")
 async def upload_image(file: UploadFile = File(...)):

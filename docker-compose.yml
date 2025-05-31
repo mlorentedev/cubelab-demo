@@ -1,48 +1,63 @@
 services:
   minio:
     image: minio/minio
-    container_name: minio
+    container_name: cubelab-minio
+    command: server /data
+    env_file:
+      - .env
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "9000:9000"   # MinIO API
+      - "9001:9001"  # Dashboard     
     volumes:
       - minio_data:/data
       - ./.env:/app/.env
-    environment:
-      MINIO_ROOT_USER: minio
-      MINIO_ROOT_PASSWORD: minio123
-    command: server /data --console-address ":9001"
-
-  gateway:
-    build: ./src/gateway
-    ports:
-      - "8080:8000"
-    volumes:
-      - ./src/gateway:/app
-      - ./.env:/app/.env
-    depends_on:
-      - minio
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   storage:
-    build: ./src/storage
+    build:
+      context: ./src/storage
+    container_name: cubelab-storage
     ports:
-      - "9002:9000"
+      - "9100:${STORAGE_INTERNAL_PORT}"
     volumes:
       - ./src/storage:/app
       - ./.env:/app/.env
     depends_on:
       - minio
 
-  processing:
-    build: ./src/processing
+  gateway:
+    build:
+      context: ./src/gateway
+    container_name: cubelab-gateway
+    env_file:
+      - .env
     ports:
-      - "8001:8000"
+      - "8080:${GATEWAY_INTERNAL_PORT}"     
+    volumes:
+      - ./src/gateway:/app
+      - ./.env:/app/.env
+    depends_on:
+      - minio
+
+  processing:
+    build:
+      context: ./src/processing
+    container_name: cubelab-processing
+    env_file:
+      - .env
+    ports:
+      - "8001:${PROCESSING_INTERNAL_PORT}"
     volumes:
       - ./src/processing:/app
       - ./results:/results
       - ./.env:/app/.env
     depends_on:
       - minio
+      - storage
 
 volumes:
   minio_data:

@@ -7,9 +7,12 @@ __pycache__/
 .env.*
 !.env.example
 venv/
+.venv/
 build/
 dist/
 *.egg-info/
 htmlcov/
 .results/
+.results/*
 __results__/
+.cache_ggshield

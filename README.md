@@ -1,156 +1,221 @@
 [![CI](https://github.com/mlorente/cubelab-demo/actions/workflows/ci.yml/badge.svg)](https://github.com/mlorente/cubelab-demo/actions/workflows/ci.yml)
 
-# Homelab Cloud Native
+# CubeLab Demo - Homelab Cloud Native
 
-Este proyecto demuestra cómo montar una infraestructura distribuida en casa con una Raspberry Pi 4 y dos Jetson Nano, emulando servicios de AWS como S3, ALB, EC2 y Lambda usando Kubernetes K3s.
+Este proyecto demuestra cómo construir una infraestructura distribuida en casa usando una Raspberry Pi 4 y dos Jetson Nano, emulando servicios cloud como S3, API Gateway y procesamiento de imágenes usando Kubernetes (K3s).
 
-## 🚀 Componentes
+## Arquitectura del Sistema
 
-- **Gateway** (Raspberry Pi 4): API que recibe imágenes
-- **Storage** (Jetson Nano A): MinIO emulando S3
-- **Procesamiento** (Jetson Nano B): Detección y generación de thumbnails
-- **Orquestador**: Kubernetes (K3s)
-- **Lenguaje**: Python con FastAPI
+El proyecto simula una arquitectura de microservicios distribuida con tres nodos principales:
 
-## 📚 Documentación
+- **Gateway** (Raspberry Pi): Punto de entrada API que recibe uploads
+- **Storage** (Jetson A): MinIO como almacenamiento compatible con S3
+- **Processing** (Jetson B): Procesamiento automático de imágenes y generación de thumbnails
+- **Orquestación**: Kubernetes (K3s) para la gestión de contenedores
 
-Este repositorio incluye documentación técnica detallada en la carpeta [`docs/`](./docs):
+## Componentes Técnicos
 
-- 📐 [`arquitectura.md`](./docs/arquitectura.md): Diagrama y descripción de la arquitectura distribuida.
-- ⚙️ [`instalacion.md`](./docs/instalacion.md): Guía de instalación de dependencias y despliegue.
-- 🧪 [`uso.md`](./docs/uso.md): Cómo subir imágenes, verificar resultados y hacer debugging.
-- 🛠 [`guia_instalacion.md`](./docs/guia_instalacion.md): Guía paso a paso con hardware y configuraciones.
-- ❓ [`faqs.md`](./docs/faqs.md): Preguntas frecuentes sobre configuración, errores comunes y soluciones.
+| Servicio | Tecnología | Puerto | Función |
+|----------|------------|--------|---------|
+| Gateway | FastAPI + Python | 9200 | API de entrada y proxy |
+| Storage | MinIO + FastAPI | 9100 | Almacenamiento de objetos |
+| Processing | OpenCV + Python | 9300 | Procesamiento de imágenes |
+| MinIO Console | MinIO | 9000/9001 | Dashboard de almacenamiento |
 
-## 📁 Estructura del proyecto
+## Documentación Completa
 
-- `src/`: Código fuente de cada servicio
-- `scripts/`: Scripts de despliegue
-- `docs/`: Documentación extendida
-- `assets/`: Diagramas e imágenes
+La documentación técnica detallada está disponible en [`docs/`](./docs):
 
-## 🧪 Uso rápido
+- [**Arquitectura**](./docs/arquitectura.md): Diagrama y descripción de componentes
+- [**Guía de Instalación**](./docs/guia_instalacion.md): Hardware requerido y configuración paso a paso
+- [**Instalación Técnica**](./docs/instalacion.md): Despliegue en K3s y configuración
+- [**Manual de Uso**](./docs/uso.md): Cómo subir imágenes y verificar resultados
+- [**FAQs**](./docs/faqs.md): Solución a problemas comunes
+
+## Hardware Requerido
+
+| Componente | Cantidad | Función |
+|------------|----------|---------|
+| Raspberry Pi 4 (4GB+) | 1 | Nodo maestro K3s + Gateway |
+| NVIDIA Jetson Nano | 2 | Nodos worker (storage + processing) |
+| MicroSD (32GB+) | 3 | Sistema operativo |
+| SSD/USB Storage | 1 | Almacenamiento MinIO |
+| Switch Ethernet | 1 | Red local |
+
+**Costo estimado:** ~200€
+
+## Equivalencias Cloud
+
+| Homelab Component | AWS Equivalent | Azure Equivalent |
+|-------------------|----------------|------------------|
+| Raspberry Pi Gateway | API Gateway + ALB | Application Gateway |
+| Jetson + MinIO | S3 + EC2 | Blob Storage + VM |
+| Jetson Processing | Lambda + EC2 GPU | Functions + GPU VM |
+| K3s Cluster | EKS | AKS |
+
+## Desarrollo Local
+
+### Prerrequisitos
+
+- **Python 3.10+**
+- **Docker & Docker Compose**
+- **Git**
+
+### Inicio Rápido
 
 ```bash
-curl -X POST -F 'file=@foto.jpg' http://<IP_RPI>:80/upload
-```
+# 1. Clonar repositorio
+git clone https://github.com/mlorente/cubelab-demo.git
+cd cubelab-demo
 
-## 💡 Equivalencias en Cloud
+# 2. Configurar entorno
+cp .env.example .env
+# Editar .env con tus configuraciones si es necesario
 
-| Homelab         | AWS            |
-|-----------------|----------------|
-| Raspberry Pi    | ALB            |
-| Jetson (MinIO)  | S3             |
-| Jetson (CPU)    | Lambda/EC2     |
-| K3s             | EKS            |
+# 3. Crear entorno virtual Python
+make venv
+source .venv/bin/activate
 
-## 🔁 Desarrollo local paso a paso
+# 4. Instalar dependencias
+make init
 
-Puedes probar todo el sistema en tu propio ordenador sin necesidad de hardware físico.
+# 5. Levantar todos los servicios
+make up
 
-### ✅ Requisitos
-
-- Python 3.10+
-- Docker
-- Docker Compose
-
-### 🧪 Instrucciones
-
-```bash
-# 1. Crear entorno virtual
-python3 -m venv .venv
-source .venv/bin/activate  # En Windows: .venv\Scripts\activate
-
-# 2. Instalar dependencias
-pip install -r requirements.txt
-
-# 3. Verifica o crea el archivo .env
-cat .env
-
-# 4. Levanta todo con Docker Compose
-docker-compose up --build
-
-# 5. Prueba una imagen
+# 6. Probar el sistema
 curl -X POST -F 'file=@tests/test.jpg' http://localhost:8080/upload
 
-# 6. Verifica resultados en ./results
+# 7. Verificar thumbnails generados
+ls -la results/
 
-# 7. Ejecuta los tests
-pytest tests/
-
-# 8. Para limpiar
-docker-compose down
-deactivate
+# 8. Ejecutar tests
+make test
 ```
 
-Las miniaturas generadas se almacenan automáticamente en el directorio `./results`, montado desde el contenedor de procesamiento.
+### Servicios Locales
 
-## 🐳 Desarrollo local con Docker Compose
+Una vez ejecutado `make up`, tendrás disponible:
 
-Puedes probar toda la arquitectura localmente sin hardware físico:
+| Servicio | URL Local | Credenciales |
+|----------|-----------|--------------|
+| Gateway API | http://localhost:8080 | - |
+| MinIO Console | http://localhost:9001 | minio / minio123 |
+| MinIO API | http://localhost:9000 | - |
+| Storage Service | http://localhost:9100 | - |
+| Processing Service | http://localhost:8001 | - |
+
+### Workflow de Procesamiento
+
+1. **Upload**: Cliente sube imagen → Gateway (puerto 8080)
+2. **Storage**: Gateway reenvía → Storage service → MinIO bucket
+3. **Processing**: Servicio detecta nueva imagen → Descarga → Crea thumbnail
+4. **Results**: Thumbnail guardado en `./results/thumb_[filename].jpg`
+
+## 🔧 Configuración Avanzada
+
+### Variables de Entorno (.env)
+
+Las principales variables configurables están en [`.env.example`](.env.example):
 
 ```bash
-docker-compose up --build
+# Hosts de dispositivos físicos
+JETSON_A_HOST=jetson-a          # Nodo de almacenamiento
+JETSON_B_HOST=jetson-b          # Nodo de procesamiento
+RASPBERRY_PI_HOST=raspberry-pi   # Nodo gateway
+
+# Configuración MinIO
+BUCKET_NAME=images
+MINIO_ENDPOINT=minio:9000
+MINIO_ROOT_USER=minio
+MINIO_ROOT_PASSWORD=minio123
+
+# Configuración de servicios
+STORAGE_UPLOAD_URL=http://storage:9100/upload
+RESULTS_DIR=/results
+SCAN_INTERVAL=30                 # Segundos entre escaneos
 ```
 
-Esto levanta:
-- MinIO en `localhost:9000` (usuario: minio / contraseña: minio123)
-- Gateway en `localhost:8080`
-- Servicio de almacenamiento conectado a MinIO
-- Procesador automático de imágenes en `/results`
-
-Sube una imagen con:
+### Testing y CI/CD
 
 ```bash
-curl -X POST -F 'file=@foto.jpg' http://localhost:8080/upload
-```
-
-## ✅ Pruebas automáticas
-
-Para ejecutar las pruebas de integración locales:
-
-```bash
-pip install requests
+# Tests unitarios
 pytest tests/test_gateway.py
-```
-
-Asegúrate de tener `docker-compose up` en ejecución antes de probar.
-
-### 🔬 Cobertura de tests
-
-Además del test de subida, también puedes validar que los thumbnails han sido generados correctamente:
-
-```bash
 pytest tests/test_processing.py
-```
 
-Puedes generar un reporte de cobertura HTML:
+# Test de integración completo
+pytest tests/ -v
 
-```bash
+# Cobertura de código
 pip install pytest-cov
 pytest --cov=src --cov-report=html
-xdg-open htmlcov/index.html  # en Linux
 ```
 
-## ⚙️ Configuración por entorno (.env)
+El pipeline de CI en [`.github/workflows/ci.yml`](.github/workflows/ci.yml) ejecuta automáticamente tests en cada push y pull request.
 
-Este proyecto utiliza un archivo `.env` en la raíz del repositorio para configurar variables sensibles y direcciones IP.
+## Despliegue en Homelab
 
-Ejemplo de `.env`:
+### K3s en Raspberry Pi (Master)
 
-```env
-JETSON_A_HOST=jetson-a
-JETSON_B_HOST=jetson-b
-RASPBERRY_PI_HOST=raspberry-pi
-
-MINIO_ENDPOINT=http://jetson-a:9000
-MINIO_ACCESS_KEY=minio
-MINIO_SECRET_KEY=minio123
-
-GATEWAY_PORT=8000
-RESULTS_DIR=/results
+```bash
+curl -sfL https://get.k3s.io | sh -
 ```
 
-Estas variables son cargadas automáticamente en los servicios mediante `python-dotenv`.
+### Jetson Nano como Workers
 
-**Importante:** Para probar en local con `docker-compose`, asegúrate de que las IPs o nombres de host se correspondan con los servicios definidos en el archivo `docker-compose.yml`.
+```bash
+# Obtener token del master
+sudo cat /var/lib/rancher/k3s/server/node-token
+
+# En cada Jetson
+curl -sfL https://get.k3s.io | K3S_URL=https://<IP_RASPBERRY>:6443 K3S_TOKEN=<TOKEN> sh -s - agent
+```
+
+### Despliegue de Aplicación
+
+```bash
+# Aplicar manifiestos K8s
+make kube-deploy
+
+# Verificar pods
+kubectl get pods -o wide
+
+# Ver logs
+make kube-logs
+```
+
+## Estructura del Proyecto
+
+```text
+cubelab-demo/
+├── src/
+│   ├── gateway/         # API Gateway (Raspberry Pi)
+│   ├── storage/         # MinIO storage service (Jetson A)
+│   ├── processing/      # Image processing (Jetson B)
+│   └── k8s/            # Manifiestos Kubernetes
+├── docs/               # Documentación técnica
+├── tests/              # Tests automatizados
+├── scripts/            # Scripts de despliegue
+├── .github/            # CI/CD workflows
+├── docker-compose.yml  # Desarrollo local
+├── Makefile           # Comandos automatizados
+└── requirements.txt   # Dependencias Python
+```
+
+## Contribuir
+
+Por favor revisa [CONTRIBUTING.md](CONTRIBUTING.md) para:
+
+- Guías de estilo de código
+- Proceso de pull requests
+- Plantillas de issues
+
+## Licencia
+
+Este proyecto está bajo la licencia MIT. Ver [LICENSE](LICENSE) para más detalles.
+
+## Soporte
+
+- **Documentación**: [`docs/`](./docs)
+- **Reportar bugs**: [GitHub Issues](https://github.com/mlorente/cubelab-demo/issues)
+- **Discusiones**: [GitHub Discussions](https://github.com/mlorente/cubelab-demo/discussions)
+- **FAQs**: [`docs/faqs.md`](./docs/faqs.md)
